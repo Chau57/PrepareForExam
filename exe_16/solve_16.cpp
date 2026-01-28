@@ -1,3 +1,7 @@
+/*
+    1. Distance between pairs
+    -> u->LCA(u, v) + v->LCA(u, v)
+*/
 #include <bits/stdc++.h>
 
 const int N = (int)1e5;
@@ -15,9 +19,9 @@ void dfs(int u, int p) {
         f[u] += f[v];
     }
     for (int v : adj[u]) if (v != p) {
-        long long x = g[v] + f[v];
-        g[u] += x;
-        ret += x * (f[u] - f[v]);
+        long long totalDistanceFromUToEveryChildInV = g[v] + f[v];
+        g[u] += totalDistanceFromUToEveryChildInV;
+        ret += totalDistanceFromUToEveryChildInV * (f[u] - f[v]);
     }
 }
 
