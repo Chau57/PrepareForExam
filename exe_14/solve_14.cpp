@@ -4,7 +4,7 @@
 
 const int N = (int)1e5 + 3;
 
-std::pair<int, int> p[N];
+pii p[N];
 long long f[N];
 
 pii operator-(const pii &a, const pii &b)
