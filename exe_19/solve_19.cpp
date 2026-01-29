@@ -1,78 +1,86 @@
-#include <iostream>
-#include <vector>
-#include <algorithm>
+#include <bits/stdc++.h>
 
-using namespace std;
+#define ll long long
+#define int long long
 
-typedef long long ll;
+const int N = (int)1e5 + 3;
+const ll INF = (ll)1e18;
+const ll BASE = (ll)1e17;
 
-ll n, T;
-vector<ll> a;
+int n;
+ll k;
+int a[N];
 
-bool check(ll X) {
-    // Bước 1: Xây dựng khung M[i] dựa trên mảng a ban đầu và độ cao đích X
-    // M[i] là độ cao tối đa tại i sao cho M[i] <= a[i] 
-    // VÀ tồn tại ít nhất một điểm j đạt độ cao X (M[j] = X)
-    // VÀ |M[i] - M[i+1]| <= 1
-    
-    // Thực tế, ta chỉ cần tìm xem có tồn tại j nào mà:
-    // Tổng chi phí để hạ a về phễu đỉnh X tại j <= T
-    
-    // Tiền xử lý mảng cộng dồn cho mảng a
-    static vector<ll> pref(100005, 0);
-    for(int i = 0; i < n; i++) pref[i+1] = pref[i] + a[i];
+ll f[N];
+int b[N];
+int L[N], R[N];
 
-    for (int j = 0; j < n; j++) {
-        // Giả sử j là "đáy phễu" đạt độ cao X
-        // Chi phí = Tổng (a[i] - target_h[i])
-        // target_h[i] = X + |i - j|
-        
-        // Tổng target_h từ 0 đến n-1:
-        // = (X+j) + (X+j-1) + ... + X + ... + (X + (n-1-j))
-        ll sum_target = n * X + (ll)j*(j+1)/2 + (ll)(n-1-j)*(n-j)/2;
-        
-        ll current_cost = pref[n] - sum_target;
-        
-        if (current_cost <= T) return true;
+bool check(ll h) {
+    for (int i = 1; i <= n; ++i) {
+        if (h >= a[i]) return true;
+    }
+
+    std::fill(b + 1, b + 1 + n, 0);
+    // j < i
+    // need: a[j] <= h + i - j
+    // add: a[j] > h + i - j
+    // -> i > a[j] + j - h
+    // stop: i = a[j] + j - h
+    for (int j = 1; j <= n; ++j) {
+        int i = std::max(1LL, a[j] + j - h);
+        if (i <= n) b[i] = j;
+    }
+    // i -> b[i] cost 0
+    // i + 1 -> b[i] still cost 0, b[i + 1] cost 0 too
+    int maxL = 0;
+    for (int i = 1; i <= n; ++i) {
+        maxL = std::max(maxL, b[i]);
+        L[i] = maxL + 1;
+    }
+
+    std::fill(b + 1, b + 1 + n, n + 1);
+    for (int j = n; j >= 1; --j) {
+        int i = std::min(1LL * n, h + j - a[j]);
+        if (1 <= i) b[i] = j;
+    }
+    int minR = n + 1;
+    for (int i = n; i >= 1; --i) {
+        minR = std::min(minR, b[i]);
+        R[i] = minR - 1;
+    }
+
+    for (int i = 1; i <= n; ++i) {
+        int lb = L[i], rb = R[i];
+        ll cur = f[rb] - f[lb - 1];
+        cur -= (i - lb) * (i - lb + 1) / 2; // lb <- i, 0+1+2+3+...(i-lb)
+        cur -= (rb - i) * (rb - i + 1) / 2; // i -> rb, 0+1+2+3+...+(rb-i)
+        if (-h >= (INF + BASE) / (rb - lb + 1)) continue;
+        cur -= h * (rb - lb + 1); // Plus base h for [lb; rb]
+        if (cur <= k) return true;
     }
     return false;
 }
 
-int main() {
-    ios_base::sync_with_stdio(false); cin.tie(NULL);
-    if (!(cin >> n >> T)) return 0;
-    a.resize(n);
-    for (int i = 0; i < n; i++) cin >> a[i];
+signed main() {
+    std::ios_base::sync_with_stdio(0);
+    std::cin.tie(NULL);
+    std::cin >> n >> k;
+    for (int i = 1; i <= n; ++i) std::cin >> a[i];
 
-    // Bước 1: Chuẩn hóa mảng a để thỏa mãn |a[i] - a[i+1]| <= 1
-    // Đây chính là khung M mà mình đã nói ở các lượt trước
-    vector<ll> L(n), R(n);
-    L[0] = a[0];
-    for (int i = 1; i < n; i++) L[i] = min(a[i], L[i-1] + 1);
-    R[n-1] = a[n-1];
-    for (int i = n-2; i >= 0; i--) R[i] = min(a[i], R[i+1] + 1);
-    
-    ll T_prep = 0;
-    for (int i = 0; i < n; i++) {
-        ll Mi = min(L[i], R[i]);
-        T_prep += (a[i] - Mi);
-        a[i] = Mi; // Cập nhật mảng a thành khung M
-    }
-    T -= T_prep; // Số tiền còn lại sau khi xây khung
+    f[0] = 0;
+    for (int i = 1; i <= n; ++i) f[i] = f[i - 1] + a[i];
 
-    // Bước 2: Chặt nhị phân tìm X trên mảng đã chuẩn hóa
-    ll low = -1e18, high = 1e9, ans = 1e9;
-    for(int i=0; i<n; i++) ans = min(ans, a[i]);
-
-    while (low <= high) {
-        ll mid = low + (high - low) / 2;
-        if (check(mid)) {
-            ans = mid;
-            high = mid - 1;
+    ll ret = *std::min_element(a + 1, a + 1 + n);
+    ll lb = -INF;
+    ll rb = ret - 1;
+    while (lb <= rb) {
+        int mb = (lb + rb) >> 1;
+        if (check(mb)) {
+            rb = mb - 1;
+            ret = mb;
         } else {
-            low = mid + 1;
+            lb = mb + 1;
         }
     }
-    cout << ans << endl;
-    return 0;
+    std::cout << ret << std::endl;
 }
